@@ -4,11 +4,13 @@ Program entry for make.fun bounty the-poster-for-a-place-that-i-2-20261121-0539.
 Writes one 1024x1024 PNG to /output/entry.png (or MAKEFUN_OUTPUT_DIR).
 Python 3.13, standard library only. Deterministic: identical bytes every run.
 
-Scene (vintage Indonesian travel-poster style, Yogyakarta/Bali school):
-a fictional island, NUSA SENJA, at golden hour — a volcano on the
-horizon, a tiered temple on a terraced hill, a lagoon, a stone gate
-framing the view, palm fronds overhead, and the island's name set in
-big condensed capitals across the sky.
+Scene v2 (vintage Indonesian travel-poster style, Yogyakarta/Bali
+school, more natural and detailed): a fictional island, NUSA SENJA,
+at golden hour — a volcano on the horizon, a tiered temple on a
+terraced hill, palm trees framing the view, an ocean with a surfer
+riding a curling wave, a sandy beach in the foreground with a stone
+gate, and the island's name set in big condensed capitals across
+the sky.
 """
 
 import math
@@ -176,10 +178,28 @@ def draw_text_centered(text, y, s, color, shadow=None, shadow_dx=0, shadow_dy=0)
 
 
 # ---------------------------------------------------------------- scene
+# v2: a living beach scene — ocean, surf, sand, palms, volcano, temple.
+# Extra palette for the natural look.
+SAND_WET = (206, 172, 128)
+SAND = (228, 196, 150)
+SAND_LIGHT = (242, 220, 178)
+FOAM = (248, 250, 244)
+WAVE_GREEN = (28, 130, 120)
+WAVE_LIGHT = (52, 160, 148)
+PALM_TRUNK = (96, 66, 44)
+PALM_LEAF = (34, 96, 62)
+PALM_LEAF_L = (52, 130, 84)
+HAZE = (96, 128, 138)
+CLOUD = (246, 198, 132)
+SMOKE = (250, 232, 205)
+
+
 def sky():
-    stops = [(0.0, DEEP_TEAL), (0.30, TEAL), (0.52, GOLD), (0.62, SUNSET)]
-    for y in range(0, 641):
-        t = y / 640.0
+    stops = [(0.0, (16, 66, 92)), (0.25, (48, 116, 132)),
+             (0.42, (120, 170, 150)), (0.55, (244, 178, 100)),
+             (0.62, (250, 196, 120))]
+    for y in range(0, 481):
+        t = y / 480.0
         color = stops[-1][1]
         for i in range(len(stops) - 1):
             t0, c0 = stops[i]
@@ -190,15 +210,25 @@ def sky():
         hfill(y, 0, W - 1, color)
 
 
-def sun():
-    fill_circle(660, 430, 132, SUN_RING)
-    fill_circle(660, 430, 105, SUN_CORE)
+def sun_glow():
+    # soft halo: wide rings fading into the sky, bright core last
+    for r, c in ((195, (248, 196, 122)), (162, (250, 206, 138)),
+                 (132, SUN_RING), (105, SUN_CORE)):
+        fill_circle(640, 420, r, c)
     # thin bright rim
     for r in (106, 107):
         for a in range(0, 360, 2):
             rad = math.radians(a)
-            set_px(int(660 + r * math.cos(rad)), int(430 + r * math.sin(rad)),
-                   CREAM)
+            set_px(int(640 + r * math.cos(rad)),
+                   int(420 + r * math.sin(rad)), CREAM)
+
+
+def clouds():
+    # soft puffy clouds: three overlapping discs each, pale against gold
+    for (cx, cy) in ((180, 330), (850, 305), (150, 215), (880, 345)):
+        for (ox, oy, r) in ((-38, 6, 16), (0, 0, 22), (38, 6, 15),
+                            (-18, -8, 14), (20, -8, 13)):
+            fill_circle(cx + ox, cy + oy, r, CLOUD)
 
 
 def birds():
@@ -207,121 +237,222 @@ def birds():
         line(bx, by - 6, bx + s, by, INK, 2)
 
 
-def far_ridge():
-    fill_poly([(0, 600), (0, 540), (120, 500), (220, 545), (330, 505),
-               (470, 550), (600, 510), (760, 548), (900, 512), (1024, 545),
-               (1024, 600)], RIDGE)
-
-
 def volcano():
-    # big cone left of centre, crater notch at the top
-    fill_poly([(80, 600), (290, 330), (318, 352), (352, 338), (380, 362),
-               (520, 600)], VOLCANO)
-    # snow-light crater rim
-    fill_poly([(290, 330), (318, 352), (352, 338), (330, 322)], SUNSET)
-    # drifting smoke, kept tight to the crater so it clears the tagline
-    fill_circle(325, 312, 10, CREAM)
-    fill_circle(342, 298, 8, CREAM)
-    fill_circle(356, 286, 6, CREAM)
+    # hazy foothill ridge behind the cone
+    fill_poly([(0, 480), (0, 430), (90, 408), (180, 436), (260, 414),
+               (340, 440), (420, 420), (470, 448), (470, 480)], HAZE)
+    # cone with a crater notch at the top
+    fill_poly([(60, 480), (270, 300), (300, 324), (336, 308), (366, 332),
+               (500, 480)], VOLCANO)
+    # sunlit flank
+    fill_poly([(300, 324), (336, 308), (366, 332), (420, 480), (330, 480)],
+              (74, 66, 92))
+    # crater rim catching the light
+    fill_poly([(270, 300), (300, 324), (336, 308), (316, 292)], SUNSET)
+    # smoke wisps curling off the crater
+    fill_circle(306, 282, 9, SMOKE)
+    fill_circle(322, 268, 7, SMOKE)
+    fill_circle(336, 256, 5, SMOKE)
 
 
 def terraced_hill():
-    # hill on the right, sloping down to the lagoon
-    fill_poly([(560, 640), (1024, 640), (1024, 540), (900, 512),
-               (760, 520), (640, 560)], HILL)
+    # hill on the right, sloping down to the sea
+    fill_poly([(620, 480), (1024, 480), (1024, 400), (940, 392),
+               (820, 396), (700, 402), (640, 440)], HILL)
     # terrace contour lines following the hill
-    for i, (cy, w) in enumerate(((548, 420), (572, 380), (596, 330),
-                                 (618, 270))):
+    for i, cy in enumerate((414, 432, 450, 466)):
         color = HILL_LIGHT if i % 2 == 0 else TERRACE_GOLD
-        x0 = 1024 - w
+        x0 = 690 + i * 25
         for x in range(x0, 1024, 4):
-            yy = cy + int(10 * math.sin((x - x0) / 90.0))
+            yy = cy + int(8 * math.sin((x - x0) / 80.0))
             hfill(yy, x, x + 3, color)
             hfill(yy + 1, x, x + 3, color)
 
 
-def temple():
-    # tiered meru temple on the hill — the poster's one landmark
-    x0, base = 700, 522
-    # base platform
-    rect(x0 - 12, base, x0 + 132, base + 18, MAROON_DARK)
-    rect(x0 - 12, base, x0 + 132, base + 4, TRIM)
-    # three roof tiers, widest at the bottom
-    tiers = [(x0 - 30, x0 + 150, base - 42, base),
-             (x0 - 8, x0 + 128, base - 82, base - 42),
-             (x0 + 14, x0 + 106, base - 118, base - 82)]
+def temple(x0, base):
+    # tiered meru temple, compact so the finial clears the tagline
+    rect(x0 - 10, base, x0 + 110, base + 14, MAROON_DARK)
+    rect(x0 - 10, base, x0 + 110, base + 4, TRIM)
+    tiers = [(x0 - 24, x0 + 124, base - 28, base),
+             (x0 - 6, x0 + 106, base - 56, base - 28),
+             (x0 + 12, x0 + 88, base - 84, base - 56)]
     for (lx, rx, ty, by) in tiers:
-        fill_poly([(lx, by), (rx, by), ((lx + rx) // 2 + 14, ty),
-                   ((lx + rx) // 2 - 14, ty)], MAROON)
+        fill_poly([(lx, by), (rx, by), ((lx + rx) // 2 + 12, ty),
+                   ((lx + rx) // 2 - 12, ty)], MAROON)
         hfill(by - 2, lx + 4, rx - 4, TRIM)
-    # finial
-    fill_poly([(x0 + 52, base - 118), (x0 + 68, base - 118),
-               (x0 + 60, base - 142)], TRIM)
-    fill_circle(x0 + 60, base - 146, 5, TRIM)
-    # door glow
-    rect(x0 + 50, base - 30, x0 + 70, base, SUN_CORE)
+    fill_poly([(x0 + 44, base - 84), (x0 + 60, base - 84),
+               (x0 + 52, base - 102)], TRIM)
+    fill_circle(x0 + 52, base - 105, 4, TRIM)
+    rect(x0 + 42, base - 24, x0 + 62, base, SUN_CORE)
 
 
-def sea():
-    rect(0, 640, W - 1, H - 1, SEA)
-    for y in range(660, 1000, 46):
-        hfill(y, 0, W - 1, SEA_LIGHT)
-    # sun reflection: shimmering band under the sun, ending clear of the
-    # footline so no streak crosses the lettering
-    for i in range(12):
-        y = 660 + i * 22
-        wdt = int(150 * (0.55 + 0.45 * math.sin(i * 1.7)))
-        cx = 660 + int(18 * math.sin(i * 2.3))
+def ocean():
+    # gradient: deep teal at the horizon, pale shallows at the shore
+    stops = [(0.0, (14, 78, 94)), (0.45, (22, 106, 118)),
+             (0.8, (46, 140, 138)), (1.0, (96, 176, 158))]
+    for y in range(480, 780):
+        t = (y - 480) / 299.0
+        color = stops[-1][1]
+        for i in range(len(stops) - 1):
+            t0, c0 = stops[i]
+            t1, c1 = stops[i + 1]
+            if t0 <= t <= t1:
+                color = lerp(c0, c1, (t - t0) / (t1 - t0))
+                break
+        hfill(y, 0, W - 1, color)
+    # sun glitter path under the sun
+    for i in range(10):
+        y = 500 + i * 24
+        wdt = int(120 * (0.6 + 0.4 * math.sin(i * 1.7)))
+        cx = 690 + int(16 * math.sin(i * 2.3))
         col = SUN_CORE if i % 3 == 0 else SUN_RING
         hfill(y, cx - wdt // 2, cx + wdt // 2, col)
         hfill(y + 1, cx - wdt // 2, cx + wdt // 2, col)
+    # rolling swell lines with foam flecks
+    for j, wy in enumerate((520, 560, 600, 640, 690, 730)):
+        for x in range(0, W, 6):
+            yy = wy + int(6 * math.sin(x / 70.0 + j * 1.3))
+            hfill(yy, x, x + 4,
+                  (210, 235, 225) if j % 2 == 0 else (140, 200, 195))
 
 
-def canoe():
-    # small outrigger canoe with a triangular sail, drifting on the lagoon
-    fill_poly([(400, 806), (470, 806), (452, 818), (418, 818)], INK)
-    line(435, 806, 435, 758, INK, 3)
-    fill_poly([(437, 762), (437, 802), (478, 802)], CREAM)
-    hfill(824, 408, 462, SEA_LIGHT)
-    hfill(826, 412, 458, SEA_LIGHT)
+def breaking_wave():
+    # the hero wave: a curling breaker on the right, foam crest, spray
+    crest = [(560, 760), (590, 690), (630, 640), (690, 612), (750, 606),
+             (800, 620), (830, 650), (845, 690), (850, 730), (855, 760)]
+    fill_poly(crest, WAVE_GREEN)
+    # lighter face band inside the curl
+    face = [(600, 760), (620, 700), (655, 660), (700, 640), (750, 638),
+            (795, 655), (820, 690), (828, 730), (830, 760)]
+    fill_poly(face, WAVE_LIGHT)
+    # foam along the crest
+    for (fx, fy) in crest[1:-1]:
+        fill_circle(fx, fy, 8, FOAM)
+        fill_circle(fx + 6, fy + 4, 5, FOAM)
+    # spray above the lip
+    for (sx, sy, sr) in ((770, 596, 4), (790, 588, 5), (812, 592, 4),
+                         (828, 604, 3), (748, 600, 3), (800, 580, 3)):
+        fill_circle(sx, sy, sr, FOAM)
+    # smaller breaker to the left, for depth
+    fill_poly([(380, 760), (400, 712), (440, 690), (490, 692), (520, 716),
+               (530, 760)], (36, 138, 128))
+    for (fx, fy) in ((400, 712), (440, 690), (490, 692), (520, 716)):
+        fill_circle(fx, fy, 6, FOAM)
+
+
+def surfer():
+    # a surfer riding the face of the hero wave, dark silhouette
+    # board, angled with the wave face
+    line(668, 720, 726, 702, CREAM, 4)
+    line(668, 720, 726, 702, INK, 1)
+    # legs: back leg planted, front leg bent toward the nose
+    line(694, 706, 682, 718, INK, 4)
+    line(694, 706, 710, 716, INK, 4)
+    # torso leaning into the wave
+    line(694, 706, 700, 688, INK, 5)
+    # arms out for balance
+    line(698, 692, 682, 686, INK, 3)
+    line(698, 692, 714, 684, INK, 3)
+    # head
+    fill_circle(702, 682, 5, INK)
+
+
+def beach():
+    # wet sand band at the waterline, dry sand to the foot
+    stops = [(0.0, SAND_WET), (0.25, SAND), (1.0, SAND_LIGHT)]
+    for y in range(780, H):
+        t = (y - 780) / 243.0
+        color = stops[-1][1]
+        for i in range(len(stops) - 1):
+            t0, c0 = stops[i]
+            t1, c1 = stops[i + 1]
+            if t0 <= t <= t1:
+                color = lerp(c0, c1, (t - t0) / (t1 - t0))
+                break
+        hfill(y, 0, W - 1, color)
+    # foam edge where the sea meets the sand, scalloped
+    for x in range(0, W, 8):
+        yy = 782 + int(6 * math.sin(x / 55.0))
+        fill_circle(x, yy, 5, FOAM)
+        fill_circle(x + 4, yy + 3, 3, FOAM)
+    # sand texture: deterministic speckles (fixed seed, same every run)
+    state = 20261121
+    tones = ((216, 186, 140), (232, 204, 158), (198, 168, 122),
+             (244, 226, 186))
+    for _ in range(2600):
+        state = (state * 1103515245 + 12345) & 0x7FFFFFFF
+        x = state % W
+        state = (state * 1103515245 + 12345) & 0x7FFFFFFF
+        y = 790 + state % 230
+        c = tones[state % 4]
+        set_px(x, y, c)
+        set_px(x + 1, y, c)
+    # a few footprints wandering up the beach
+    for i in range(7):
+        fx = 420 + i * 14
+        fy = 880 + i * 16
+        fill_circle(fx, fy, 3, (198, 168, 122))
+        fill_circle(fx + 8, fy + 8, 3, (198, 168, 122))
 
 
 def stone_gate():
-    # candi bentar split gate framing the foreground, left and right
+    # candi bentar split gate standing on the sand, framing the beach
     for gx in (24, 900):
-        # stepped pillar
-        rect(gx, 830, gx + 100, H - 1, INK)
-        rect(gx - 8, 800, gx + 108, 830, INK)
-        rect(gx - 16, 772, gx + 116, 800, INK)
-        # small roof cap
-        fill_poly([(gx - 22, 772), (gx + 122, 772), (gx + 50, 736)],
+        rect(gx, 852, gx + 100, H - 1, INK)
+        rect(gx - 8, 822, gx + 108, 852, INK)
+        rect(gx - 16, 794, gx + 116, 822, INK)
+        fill_poly([(gx - 22, 794), (gx + 122, 794), (gx + 50, 758)],
                   MAROON_DARK)
-        hfill(774, gx - 14, gx + 114, TRIM)
+        hfill(796, gx - 14, gx + 114, TRIM)
+        # carved band
+        hfill(880, gx + 6, gx + 94, MAROON_DARK)
+        hfill(920, gx + 6, gx + 94, MAROON_DARK)
 
 
-def palm_fronds():
-    # dark fronds hanging in from the top corners
-    def frond(x0, y0, x1, y1, x2, y2, flip):
-        # quadratic bezier rib
-        steps = 24
-        prev = None
-        for i in range(steps + 1):
-            t = i / steps
-            x = int((1 - t) ** 2 * x0 + 2 * (1 - t) * t * x1 + t * t * x2)
-            y = int((1 - t) ** 2 * y0 + 2 * (1 - t) * t * y1 + t * t * y2)
-            if prev is not None:
-                line(prev[0], prev[1], x, y, INK, 3)
-                # leaflets angling off the rib
-                if i % 3 == 0:
-                    lx = x + (18 if flip else -18)
-                    ly = y + 16
-                    line(x, y, lx, ly, INK, 2)
-            prev = (x, y)
+def frond(x0, y0, x1, y1, x2, y2, flip, color):
+    # one palm frond: quadratic bezier rib with leaflets
+    steps = 24
+    prev = None
+    for i in range(steps + 1):
+        t = i / steps
+        x = int((1 - t) ** 2 * x0 + 2 * (1 - t) * t * x1 + t * t * x2)
+        y = int((1 - t) ** 2 * y0 + 2 * (1 - t) * t * y1 + t * t * y2)
+        if prev is not None:
+            line(prev[0], prev[1], x, y, color, 3)
+            if i % 3 == 0:
+                lx = x + (18 if flip else -18)
+                ly = y + 16
+                line(x, y, lx, ly, color, 2)
+        prev = (x, y)
 
-    frond(0, 10, 120, 60, 260, 150, True)
-    frond(30, 0, 160, 30, 300, 90, True)
-    frond(1024, 10, 904, 60, 764, 150, False)
-    frond(994, 0, 864, 30, 724, 90, False)
+
+def palm(cx_base, lean):
+    # a full palm tree: curved trunk, crown of fronds, coconuts
+    top_x = cx_base + lean * 55
+    top_y = 430
+    # trunk as one continuous curve: thick segments between points
+    pts = []
+    for i in range(26):
+        t = i / 25.0
+        pts.append((int(cx_base + lean * 55 * t * t), int(1000 - t * 570)))
+    for i in range(len(pts) - 1):
+        line(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1],
+             PALM_TRUNK, 15)
+    # trunk rings: short darker bands across the trunk
+    for i in range(4, 26, 4):
+        x, y = pts[i]
+        hfill(y, x - 7, x + 7, (70, 48, 32))
+    # crown: fronds fanning out
+    for (dx, dy, fx) in ((-160, 40, False), (-120, 90, False),
+                         (-60, 110, False), (30, 110, True),
+                         (110, 80, True), (170, 30, True),
+                         (-40, -50, False), (60, -45, True)):
+        frond(top_x, top_y, top_x + dx // 2, top_y + dy // 2,
+              top_x + dx, top_y + dy, fx,
+              PALM_LEAF if (dx + dy) % 2 == 0 else PALM_LEAF_L)
+    # coconuts under the crown
+    fill_circle(top_x - 12, top_y + 14, 7, (96, 66, 44))
+    fill_circle(top_x + 10, top_y + 16, 7, (96, 66, 44))
 
 
 def border():
@@ -345,9 +476,8 @@ def lettering():
     cx = (W - tw) // 2
     line(cx - 64, 266, cx - 16, 266, CREAM, 2)
     line(cx + tw + 16, 266, cx + tw + 64, 266, CREAM, 2)
-    # small line at the foot of the poster
-    draw_text_centered("AN ISLAND BEYOND THE MAP", 972, 3, CREAM,
-                       shadow=INK, shadow_dx=1, shadow_dy=2)
+    # small line at the foot of the poster, dark on the pale sand
+    draw_text_centered("AN ISLAND BEYOND THE MAP", 972, 3, MAROON_DARK)
 
 
 # ---------------------------------------------------------------- PNG out
@@ -373,16 +503,19 @@ def write_png(path):
 
 def main():
     sky()
-    sun()
+    sun_glow()
+    clouds()
     birds()
-    far_ridge()
     volcano()
     terraced_hill()
-    temple()
-    sea()
-    canoe()
+    temple(780, 400)
+    ocean()
+    breaking_wave()
+    surfer()
+    beach()
+    palm(40, 1)
+    palm(984, -1)
     stone_gate()
-    palm_fronds()
     border()
     lettering()
     outdir = os.environ.get("MAKEFUN_OUTPUT_DIR", "/output")
